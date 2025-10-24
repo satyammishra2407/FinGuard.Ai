@@ -18,6 +18,13 @@ from detection_algorithms import AMLDetectionEngine
 from ml_models import MLRiskAssessment
 import config
 
+# Initialize database on first run (for Streamlit Cloud)
+try:
+    from setup_database import setup_database
+    setup_database()
+except Exception as e:
+    st.warning(f"Database setup: {e}")
+
 # Page configuration
 st.set_page_config(
     page_title="FinGuard AI - AML Platform",

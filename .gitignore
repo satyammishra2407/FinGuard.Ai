@@ -69,5 +69,5 @@ logs/
 .python-version
 
 # Streamlit
-.streamlit/
+.streamlit/secrets.toml
 
