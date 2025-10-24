@@ -3,8 +3,8 @@ Setup database with sample data for Streamlit Cloud deployment
 Run this automatically on first app load
 """
 import os
-from database import Base, engine, get_db_session
-from data_generator import generate_sample_data
+from database import Base, engine
+from data_generator import EnhancedDataGenerator
 
 def setup_database():
     """Initialize database with sample data if it doesn't exist"""
@@ -14,25 +14,25 @@ def setup_database():
     needs_setup = not os.path.exists(db_file)
     
     if needs_setup:
-        print("🔄 Initializing database for first-time setup...")
+        print("[INFO] Initializing database for first-time setup...")
         
         # Create tables
         Base.metadata.create_all(bind=engine)
-        print("✅ Database tables created")
+        print("[SUCCESS] Database tables created")
         
         # Generate sample data
-        db = get_db_session()
         try:
-            generate_sample_data(db, num_customers=100, num_transactions_per_customer=50)
-            print("✅ Sample data generated (100 customers, ~5000 transactions)")
+            generator = EnhancedDataGenerator()
+            generator.populate_database(num_customers=100, num_transactions_per_customer=50)
+            print("[SUCCESS] Sample data generated successfully!")
         except Exception as e:
-            print(f"⚠️ Error generating sample data: {e}")
-        finally:
-            db.close()
+            print(f"[ERROR] Error generating sample data: {e}")
+            import traceback
+            traceback.print_exc()
         
-        print("✅ Database setup complete!")
+        print("[SUCCESS] Database setup complete!")
     else:
-        print("✅ Database already exists")
+        print("[INFO] Database already exists")
     
     return True
 
