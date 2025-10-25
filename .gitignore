@@ -39,8 +39,16 @@ env/
 *.sqlite3
 finguard_ai.db
 
-# ML Models (optional - keep local, don't push large files)
-models/*.pkl
+# ML Models (keep local, don't push large files)
+models/
+*.pkl
+
+# Local helper files
+OPEN_APP.bat
+LOCAL_SETUP_GUIDE.md
+
+# External libraries (large files)
+lib/
 
 # Environment variables
 .env
