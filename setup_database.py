@@ -8,31 +8,46 @@ from data_generator import EnhancedDataGenerator
 
 def setup_database():
     """Initialize database with sample data if it doesn't exist"""
+    from sqlalchemy import inspect
+    
     db_file = "finguard_ai.db"
     
-    # Check if database needs initialization
-    needs_setup = not os.path.exists(db_file)
+    # Check if database has data
+    needs_data = False
     
-    if needs_setup:
-        print("[INFO] Initializing database for first-time setup...")
-        
-        # Create tables
+    try:
+        # Create tables if they don't exist
         Base.metadata.create_all(bind=engine)
-        print("[SUCCESS] Database tables created")
         
-        # Generate sample data
-        try:
-            generator = EnhancedDataGenerator()
-            generator.populate_database(num_customers=100, num_transactions_per_customer=50)
-            print("[SUCCESS] Sample data generated successfully!")
-        except Exception as e:
-            print(f"[ERROR] Error generating sample data: {e}")
-            import traceback
-            traceback.print_exc()
+        # Check if database has any customers
+        from database import SessionLocal, Customer
+        db = SessionLocal()
+        customer_count = db.query(Customer).count()
+        db.close()
+        
+        needs_data = (customer_count == 0)
+        
+        if needs_data:
+            print("[INFO] Database is empty, generating sample data...")
+            
+            # Generate sample data
+            try:
+                generator = EnhancedDataGenerator()
+                generator.populate_database(num_customers=100, num_transactions_per_customer=50)
+                print("[SUCCESS] Sample data generated successfully!")
+                print("[SUCCESS] Created 100 customers with ~5000 transactions")
+            except Exception as e:
+                print(f"[ERROR] Error generating sample data: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            print(f"[INFO] Database already has {customer_count} customers")
         
         print("[SUCCESS] Database setup complete!")
-    else:
-        print("[INFO] Database already exists")
+    except Exception as e:
+        print(f"[ERROR] Database setup failed: {e}")
+        import traceback
+        traceback.print_exc()
     
     return True
 
