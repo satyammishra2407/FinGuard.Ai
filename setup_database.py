@@ -33,9 +33,9 @@ def setup_database():
             # Generate sample data
             try:
                 generator = EnhancedDataGenerator()
-                generator.populate_database(num_customers=100, num_transactions_per_customer=50)
+                generator.populate_database(num_customers=1000, num_transactions_per_customer=50)
                 print("[SUCCESS] Sample data generated successfully!")
-                print("[SUCCESS] Created 100 customers with ~5000 transactions")
+                print("[SUCCESS] Created 1000 customers with ~50,000 transactions")
             except Exception as e:
                 print(f"[ERROR] Error generating sample data: {e}")
                 import traceback
