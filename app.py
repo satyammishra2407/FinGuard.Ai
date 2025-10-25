@@ -245,7 +245,6 @@ def create_network_visualization():
     
     db = get_db_session()
     try:
-        # Only load high-risk customers and suspicious transactions
         customers = get_customers_for_network_analysis(db, limit=200)
         transactions = get_suspicious_transactions_sample(db, limit=2000)
         
@@ -253,76 +252,49 @@ def create_network_visualization():
             st.warning("Not enough data for network analysis")
             return None
         
-    detection_engine = AMLDetectionEngine()
-    smurf_networks = detection_engine.detect_smurfing_network(customers, transactions)
-    
-    if not smurf_networks:
-        st.warning("No smurfing networks detected")
-        return None
-    
-    # Create network graph
-    G = nx.Graph()
-    
-        # Add nodes and edges for each network (limit to top 3 networks)
+        detection_engine = AMLDetectionEngine()
+        smurf_networks = detection_engine.detect_smurfing_network(customers, transactions)
+        
+        if not smurf_networks:
+            st.warning("No smurfing networks detected")
+            return None
+        
+        G = nx.Graph()
         for network in smurf_networks[:3]:
-            accounts = network['accounts'][:10]  # Limit nodes per network
-        for i, account in enumerate(accounts):
-            G.add_node(account, 
-                      risk_score=next((c.risk_score for c in customers if c.customer_id == account), 0),
-                      group=1)
-            # Connect all accounts in the network
-            for j in range(i+1, len(accounts)):
-                G.add_edge(account, accounts[j], weight=network['total_volume'])
-    
-    # Create PyVis network
-    net = Network(height="600px", width="100%", bgcolor="#222222", font_color="white")
-    
-    # Add nodes
-    for node in G.nodes():
-        risk_score = G.nodes[node]['risk_score']
+            accounts = network['accounts'][:10]
+            for i, account in enumerate(accounts):
+                G.add_node(account, risk_score=next((c.risk_score for c in customers if c.customer_id == account), 0), group=1)
+                for j in range(i+1, len(accounts)):
+                    G.add_edge(account, accounts[j], weight=network['total_volume'])
+        
+        net = Network(height="600px", width="100%", bgcolor="#222222", font_color="white")
+        
+        for node in G.nodes():
+            risk_score = G.nodes[node]['risk_score']
             color_class = get_risk_color(risk_score).replace('risk-', '')
-            # Map color class to actual colors
             color_map = {'low': '#2ca02c', 'medium': '#ff7f0e', 'high': '#d62728', 'critical': '#8b0000'}
             color = color_map.get(color_class, '#1f77b4')
-        net.add_node(node, 
-                   label=f"{node}\nRisk: {risk_score:.1f}",
-                   color=color,
-                   size=20)
-    
-    # Add edges
-    for edge in G.edges():
-        net.add_edge(edge[0], edge[1], width=2)
-    
-    # Set physics
-    net.set_options("""
-    {
-        "physics": {
-            "enabled": true,
-                "stabilization": {"iterations": 50}
-            }
-    }
-    """)
-    
-        # Save and display - Windows-safe file handling
+            net.add_node(node, label=f"{node}\nRisk: {risk_score:.1f}", color=color, size=20)
+        
+        for edge in G.edges():
+            net.add_edge(edge[0], edge[1], width=2)
+        
+        net.set_options("""{"physics": {"enabled": true, "stabilization": {"iterations": 50}}}""")
+        
         with tempfile.NamedTemporaryFile(delete=False, suffix='.html', mode='w') as tmp:
             tmp_path = tmp.name
-        
-        # Save graph to temp file
         net.save_graph(tmp_path)
         
-        # Read the content
         try:
             with open(tmp_path, 'r', encoding='utf-8') as f:
-            html_content = f.read()
+                html_content = f.read()
         finally:
-            # Try to delete, ignore if locked (Windows issue)
             try:
                 os.unlink(tmp_path)
             except (PermissionError, OSError):
-                # File is locked, will be cleaned up later by system
                 pass
-    
-    return html_content
+        
+        return html_content
     finally:
         db.close()
 
@@ -407,22 +379,22 @@ def main():
         if recent_alerts:
             db = get_db_session()
             try:
-            for alert in recent_alerts:
+                for alert in recent_alerts:
                     customer = db.query(Customer).filter(Customer.customer_id == alert.customer_id).first()
-                if customer:
-                    col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
-                    
-                    with col1:
-                        st.write(f"**{customer.name}** - {alert.alert_type}")
-                    
-                    with col2:
-                        st.write(f"Risk: {alert.risk_score:.1f}")
-                    
-                    with col3:
-                        st.write(f"Status: {alert.status}")
-                    
-                    with col4:
-                        st.write(alert.timestamp.strftime("%Y-%m-%d %H:%M"))
+                    if customer:
+                        col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
+                        
+                        with col1:
+                            st.write(f"**{customer.name}** - {alert.alert_type}")
+                        
+                        with col2:
+                            st.write(f"Risk: {alert.risk_score:.1f}")
+                        
+                        with col3:
+                            st.write(f"Status: {alert.status}")
+                        
+                        with col4:
+                            st.write(alert.timestamp.strftime("%Y-%m-%d %H:%M"))
             finally:
                 db.close()
         else:
@@ -437,96 +409,96 @@ def main():
         
         db = get_db_session()
         try:
-        if search_term:
+            if search_term:
                 filtered_customers = db.query(Customer).filter(
                     (Customer.customer_id.ilike(f"%{search_term}%")) | 
                     (Customer.name.ilike(f"%{search_term}%"))
                 ).limit(100).all()
-        else:
+            else:
                 # Use pagination for all customers
                 page_num = st.number_input("Page", min_value=1, value=1, step=1)
                 per_page = 50
                 offset = (page_num - 1) * per_page
                 filtered_customers = load_customers_paginated(limit=per_page, offset=offset)
-        
-        if filtered_customers:
-            # Customer selection
-            customer_options = {f"{c.name} ({c.customer_id})": c for c in filtered_customers}
-            selected_customer_name = st.selectbox("Select Customer", list(customer_options.keys()))
-            selected_customer = customer_options[selected_customer_name]
             
-            # Customer profile
-            st.subheader(f"👤 Customer Profile: {selected_customer.name}")
-            
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.metric("Customer ID", selected_customer.customer_id)
-                st.metric("Declared Income", f"₹{selected_customer.declared_income:,.2f}")
-                st.metric("Occupation", selected_customer.occupation)
-            
-            with col2:
-                st.metric("KYC Status", selected_customer.kyc_status)
-                st.metric("Account Opening Date", selected_customer.account_opening_date.strftime("%Y-%m-%d"))
-                st.metric("Risk Score", f"{selected_customer.risk_score:.1f}")
-            
-            with col3:
-                risk_class = get_risk_color(selected_customer.risk_score)
-                st.markdown(f"<div class='{risk_class}'>Risk Level: {risk_class.replace('risk-', '').upper()}</div>", 
-                           unsafe_allow_html=True)
-            
+            if filtered_customers:
+                # Customer selection
+                customer_options = {f"{c.name} ({c.customer_id})": c for c in filtered_customers}
+                selected_customer_name = st.selectbox("Select Customer", list(customer_options.keys()))
+                selected_customer = customer_options[selected_customer_name]
+                
+                # Customer profile
+                st.subheader(f"👤 Customer Profile: {selected_customer.name}")
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.metric("Customer ID", selected_customer.customer_id)
+                    st.metric("Declared Income", f"₹{selected_customer.declared_income:,.2f}")
+                    st.metric("Occupation", selected_customer.occupation)
+                
+                with col2:
+                    st.metric("KYC Status", selected_customer.kyc_status)
+                    st.metric("Account Opening Date", selected_customer.account_opening_date.strftime("%Y-%m-%d"))
+                    st.metric("Risk Score", f"{selected_customer.risk_score:.1f}")
+                
+                with col3:
+                    risk_class = get_risk_color(selected_customer.risk_score)
+                    st.markdown(f"<div class='{risk_class}'>Risk Level: {risk_class.replace('risk-', '').upper()}</div>", 
+                               unsafe_allow_html=True)
+                
                 # Customer transactions - load only for selected customer
                 from database import get_customer_transactions
                 customer_transactions = get_customer_transactions(db, selected_customer.customer_id, limit=100)
-            
-            if customer_transactions:
-                st.subheader("💳 Transaction History")
                 
-                # Transaction summary
-                total_amount = sum(t.amount for t in customer_transactions)
-                suspicious_count = len([t for t in customer_transactions if t.is_suspicious])
-                
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("Total Transactions", len(customer_transactions))
-                with col2:
-                    st.metric("Total Amount", f"₹{total_amount:,.2f}")
-                with col3:
-                    st.metric("Suspicious Transactions", suspicious_count)
-                
-                # Risk analysis
-                st.subheader("🔍 Risk Analysis")
-                risk_report = detection_engine.generate_risk_report(selected_customer, customer_transactions)
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.write("**Risk Factors:**")
-                    for factor in risk_report['risk_factors']:
-                        st.write(f"• {factor}")
-                
-                with col2:
-                    st.write("**Detected Patterns:**")
-                    for pattern, detected in risk_report['patterns'].items():
-                        status = "✅" if detected else "❌"
-                        st.write(f"{status} {pattern.replace('_', ' ').title()}")
-                
-                # Transaction table
-                st.subheader("📋 Recent Transactions")
-                transaction_df = pd.DataFrame([{
-                    'Date': t.timestamp.strftime("%Y-%m-%d %H:%M"),
-                    'Amount': f"₹{t.amount:,.2f}",
-                    'Type': t.transaction_type,
-                    'Beneficiary': t.beneficiary,
-                    'Status': t.status,
-                    'Suspicious': "⚠️" if t.is_suspicious else "✅"
-                } for t in sorted(customer_transactions, key=lambda x: x.timestamp, reverse=True)[:20]])
-                
-                st.dataframe(transaction_df, use_container_width=True)
+                if customer_transactions:
+                    st.subheader("💳 Transaction History")
+                    
+                    # Transaction summary
+                    total_amount = sum(t.amount for t in customer_transactions)
+                    suspicious_count = len([t for t in customer_transactions if t.is_suspicious])
+                    
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Total Transactions", len(customer_transactions))
+                    with col2:
+                        st.metric("Total Amount", f"₹{total_amount:,.2f}")
+                    with col3:
+                        st.metric("Suspicious Transactions", suspicious_count)
+                    
+                    # Risk analysis
+                    st.subheader("🔍 Risk Analysis")
+                    risk_report = detection_engine.generate_risk_report(selected_customer, customer_transactions)
+                    
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.write("**Risk Factors:**")
+                        for factor in risk_report['risk_factors']:
+                            st.write(f"• {factor}")
+                    
+                    with col2:
+                        st.write("**Detected Patterns:**")
+                        for pattern, detected in risk_report['patterns'].items():
+                            status = "✅" if detected else "❌"
+                            st.write(f"{status} {pattern.replace('_', ' ').title()}")
+                    
+                    # Transaction table
+                    st.subheader("📋 Recent Transactions")
+                    transaction_df = pd.DataFrame([{
+                        'Date': t.timestamp.strftime("%Y-%m-%d %H:%M"),
+                        'Amount': f"₹{t.amount:,.2f}",
+                        'Type': t.transaction_type,
+                        'Beneficiary': t.beneficiary,
+                        'Status': t.status,
+                        'Suspicious': "⚠️" if t.is_suspicious else "✅"
+                    } for t in sorted(customer_transactions, key=lambda x: x.timestamp, reverse=True)[:20]])
+                    
+                    st.dataframe(transaction_df, use_container_width=True)
+                else:
+                    st.info("No transactions found for this customer")
             else:
-                st.info("No transactions found for this customer")
-        else:
-            st.warning("No customers found matching the search criteria")
+                st.warning("No customers found matching the search criteria")
         finally:
             db.close()
 
@@ -565,28 +537,28 @@ def main():
                 transactions_sample = db.query(Transaction).limit(10000).all()
                 
                 if transactions_sample:
-                # Transaction type distribution
+                    # Transaction type distribution
                     transaction_types = [t.transaction_type for t in transactions_sample]
-                type_counts = pd.Series(transaction_types).value_counts()
-                
-                fig = px.pie(
-                    values=type_counts.values,
-                    names=type_counts.index,
+                    type_counts = pd.Series(transaction_types).value_counts()
+                    
+                    fig = px.pie(
+                        values=type_counts.values,
+                        names=type_counts.index,
                         title="Transaction Type Distribution (Sample)"
-                )
-                st.plotly_chart(fig, use_container_width=True)
-                
-                # Amount distribution
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Amount distribution
                     amounts = [t.amount for t in transactions_sample]
-                fig = px.histogram(
-                    x=amounts,
-                    nbins=50,
+                    fig = px.histogram(
+                        x=amounts,
+                        nbins=50,
                         title="Transaction Amount Distribution (Sample)",
-                    labels={'x': 'Amount (₹)', 'y': 'Frequency'}
-                )
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info("No transaction data available")
+                        labels={'x': 'Amount (₹)', 'y': 'Frequency'}
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.info("No transaction data available")
             finally:
                 db.close()
         
