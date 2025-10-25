@@ -982,42 +982,42 @@ def main():
             alerts = query.order_by(Alert.timestamp.desc()).limit(100).all()
             
             if alerts:
-            # Display alerts
+                # Display alerts
                 st.write(f"Showing {len(alerts)} most recent alerts")
                 
                 for alert in alerts:
                     customer = db.query(Customer).filter(Customer.customer_id == alert.customer_id).first()
-                
-                with st.expander(f"Alert {alert.alert_id} - {customer.name if customer else 'Unknown Customer'}"):
-                    col1, col2 = st.columns(2)
                     
-                    with col1:
-                        st.write(f"**Customer:** {customer.name if customer else 'Unknown'}")
-                        st.write(f"**Alert Type:** {alert.alert_type}")
-                        st.write(f"**Risk Score:** {alert.risk_score:.1f}")
-                        st.write(f"**Status:** {alert.status}")
-                    
-                    with col2:
-                        st.write(f"**Timestamp:** {alert.timestamp.strftime('%Y-%m-%d %H:%M')}")
-                        st.write(f"**Assigned Analyst:** {alert.assigned_analyst or 'Unassigned'}")
-                        st.write(f"**Triggered Rules:** {alert.triggered_rules}")
-                    
-                    if alert.investigation_notes:
-                        st.write(f"**Investigation Notes:** {alert.investigation_notes}")
-                    
-                    # Action buttons
+                    with st.expander(f"Alert {alert.alert_id} - {customer.name if customer else 'Unknown Customer'}"):
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            st.write(f"**Customer:** {customer.name if customer else 'Unknown'}")
+                            st.write(f"**Alert Type:** {alert.alert_type}")
+                            st.write(f"**Risk Score:** {alert.risk_score:.1f}")
+                            st.write(f"**Status:** {alert.status}")
+                        
+                        with col2:
+                            st.write(f"**Timestamp:** {alert.timestamp.strftime('%Y-%m-%d %H:%M')}")
+                            st.write(f"**Assigned Analyst:** {alert.assigned_analyst or 'Unassigned'}")
+                            st.write(f"**Triggered Rules:** {alert.triggered_rules}")
+                        
+                        if alert.investigation_notes:
+                            st.write(f"**Investigation Notes:** {alert.investigation_notes}")
+                        
+                        # Action buttons
                         btn_col1, btn_col2, btn_col3 = st.columns(3)
                         with btn_col1:
-                        if st.button(f"Assign to Analyst", key=f"assign_{alert.alert_id}"):
-                            st.success("Alert assigned!")
+                            if st.button(f"Assign to Analyst", key=f"assign_{alert.alert_id}"):
+                                st.success("Alert assigned!")
                         with btn_col2:
-                        if st.button(f"Mark as Investigating", key=f"investigate_{alert.alert_id}"):
-                            st.success("Alert status updated!")
+                            if st.button(f"Mark as Investigating", key=f"investigate_{alert.alert_id}"):
+                                st.success("Alert status updated!")
                         with btn_col3:
-                        if st.button(f"Resolve Alert", key=f"resolve_{alert.alert_id}"):
-                            st.success("Alert resolved!")
-        else:
-            st.info("No alerts found")
+                            if st.button(f"Resolve Alert", key=f"resolve_{alert.alert_id}"):
+                                st.success("Alert resolved!")
+            else:
+                st.info("No alerts found")
         finally:
             db.close()
 
@@ -1036,7 +1036,7 @@ def main():
                     customers_sample = db.query(Customer).limit(1000).all()
                     transactions_sample = db.query(Transaction).limit(10000).all()
                     best_model = ml_models.train_risk_classification_model(customers_sample, transactions_sample)
-                st.success(f"Model training completed! Best model: {best_model}")
+                    st.success(f"Model training completed! Best model: {best_model}")
                 finally:
                     db.close()
         
@@ -1046,7 +1046,7 @@ def main():
                 try:
                     transactions_sample = db.query(Transaction).limit(10000).all()
                     ml_models.train_transaction_anomaly_model(transactions_sample)
-                st.success("Transaction anomaly model training completed!")
+                    st.success("Transaction anomaly model training completed!")
                 finally:
                     db.close()
         
