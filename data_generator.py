@@ -267,13 +267,14 @@ class EnhancedDataGenerator:
         
         return False
 
-    def populate_database(self):
+    def populate_database(self, num_customers=1000, num_transactions_per_customer=50):
         """Generate and populate database with enhanced data"""
-        print("Generating customers...")
-        customers = self.generate_customers(1000)
+        print(f"Generating {num_customers} customers...")
+        customers = self.generate_customers(num_customers)
         
-        print("Generating transactions with smurfing patterns...")
-        transactions = self.generate_transactions(customers, 50000)
+        num_transactions = num_customers * num_transactions_per_customer
+        print(f"Generating {num_transactions} transactions with smurfing patterns...")
+        transactions = self.generate_transactions(customers, num_transactions)
         
         print("Generating alerts...")
         alerts = self.generate_alerts(customers, transactions)
